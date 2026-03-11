@@ -16,7 +16,6 @@ contract HsNft is ERC721, Ownable {
     string private s_baseUri;
 
     mapping(uint256 => bool) public s_isSold;
-    mapping(uint256 => uint256) public s_nftPrices;
 
     /**
      * @notice 유저의 nft 거래 내역을 트레킹 하기 위한 이벤트
