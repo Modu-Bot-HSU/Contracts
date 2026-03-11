@@ -7,21 +7,29 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title 한성대학교 NFT 상점
+ * @author woojo230 (Jun)
  * @notice 유저가 20개의 고유 NFT 중 하나를 선택해 HS 코인으로 구매
+ * @dev OpenZeppelin의 ERC721 및 Ownable을 상속받아 구현
  */
 contract HsNft is ERC721, Ownable {
     IERC20 public immutable i_hsToken;
     string private s_baseUri;
-    mapping(uint256 => bool) public s_isSold;
 
-    /// @notice 유저의 nft 거래 내역을 트레킹 하기 위한 이벤트
-    /// @param buyer 해당 nft를 구매한 유저의 주소
-    /// @param index 선택한 NFT 디자인의 인덱스 (0~19)
-    /// @param tokenId 발행된 NFT의 고유 ID (이 프로젝트에서는 index와 동일)
+    mapping(uint256 => bool) public s_isSold;
+    mapping(uint256 => uint256) public s_nftPrices;
+
+    /**
+     * @notice 유저의 nft 거래 내역을 트레킹 하기 위한 이벤트
+     * @param buyer 해당 nft를 구매한 유저의 주소
+     * @param index 선택한 NFT 디자인의 인덱스 (0~19)
+     * @param tokenId 발행된 NFT의 고유 ID (이 프로젝트에서는 index와 동일)
+     * @param price 각 NFT 가격
+     */
     event NftPurchased(
         address indexed buyer,
         uint256 indexed index,
-        uint256 tokenId
+        uint256 tokenId,
+        uint256 price
     );
 
     constructor(
@@ -34,28 +42,35 @@ contract HsNft is ERC721, Ownable {
 
     /**
      * @dev ERC721 표준 함수를 오버라이드하여 Base URI를 반환
-     * 이 함수가 있어야 'baseUri + tokenId' 형태로 메타데이터 주소가 완성
+     * 해당 함수가 'baseUri + tokenId' 형태로 메타데이터 주소를 완성
      */
     function _baseURI() internal view override returns (string memory) {
         return s_baseUri;
     }
 
     /**
-     * @notice 유저가 원하는 번호(0~19)의 NFT를 선택해 구매
-     * @param index 구매하고자 하는 NFT 디자인의 인덱스
+     * @notice 관리자(서버)가 유저 대신 가스비를 내고 구매를 진행
+     * @param user 실제 NFT를 받을 유저의 주소
+     * @param index 구매할 NFT 번호
      */
-    function buyNft(uint256 index) public {
+    function buyNftForUser(
+        address user,
+        uint256 index,
+        uint256 price
+    ) public onlyOwner {
         require(index < 20, "Out of range");
         require(!s_isSold[index], "Already sold");
+
+        // 유저에게 사전에 'Approve' 승인을 받아야함
         require(
-            i_hsToken.transferFrom(msg.sender, address(this), 50 * 1e18),
-            "Fail"
+            i_hsToken.transferFrom(user, address(this), price),
+            "Token transfer failed"
         );
 
         s_isSold[index] = true;
-        _safeMint(msg.sender, index);
+        _safeMint(user, index);
 
-        emit NftPurchased(msg.sender, index, index);
+        emit NftPurchased(user, index, index, price);
     }
 
     /**
