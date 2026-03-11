@@ -10,7 +10,8 @@ contract DeployAll is Script {
     uint256 public constant INITIAL_SUPPLY = 100 ether;
 
     // 임시주소 추후 ipfs에 올린 메타데이터 폴더 주소로 변경
-    string public constant BASE_URI = "ipfs://QmYourFolderCIDhere/";
+    string public constant BASE_URI =
+        "ipfs://bafybeig37ioir76s7mg5oobetncojcm3c3hxasyd4rvid4jqhy4gkaheg4/?filename=0-PUG.json";
 
     function run() external returns (HsToken, HsNft) {
         vm.startBroadcast();
