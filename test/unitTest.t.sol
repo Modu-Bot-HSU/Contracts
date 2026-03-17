@@ -20,12 +20,17 @@ contract HsTokenTest is Test {
     uint256 public constant NFT_PRICE = 5 ether;
 
     event RewardIssued(address indexed user, uint256 amount);
-    event NftPurchased(address indexed buyer, uint256 indexed index, uint256 tokenId, uint256 price);
+    event NftPurchased(
+        address indexed buyer,
+        uint256 indexed index,
+        uint256 tokenId,
+        uint256 price
+    );
 
     function setUp() public {
         deployer = new DeployAll();
         (hsToken, hsNft) = deployer.run();
-        
+
         // deployer.run() 내부의 vm.startBroadcast()에 의해 생성된 컨트랙트의 owner 가져옴
         owner = hsToken.owner();
     }
@@ -47,7 +52,7 @@ contract HsTokenTest is Test {
 
     function test_RevertMintNotOwner() public {
         vm.prank(USER1);
-        vm.expectRevert(); 
+        vm.expectRevert();
         hsToken.mint(USER1, 50 ether);
     }
 
@@ -68,7 +73,7 @@ contract HsTokenTest is Test {
 
     function test_RevertRewardUserNotOwner() public {
         vm.prank(USER1);
-        vm.expectRevert(); 
+        vm.expectRevert();
         hsToken.rewardUser(USER2, REWARD_AMOUNT);
     }
 
@@ -118,7 +123,7 @@ contract HsTokenTest is Test {
 
     function test_RevertBuyNftForUserNotOwner() public {
         vm.startPrank(USER1);
-        vm.expectRevert(); 
+        vm.expectRevert();
         hsNft.buyNftForUser(USER1, 0, NFT_PRICE);
         vm.stopPrank();
     }
@@ -134,7 +139,7 @@ contract HsTokenTest is Test {
         // 첫번째 구매 (성공)
         vm.prank(owner);
         hsToken.rewardUser(USER1, NFT_PRICE);
-        
+
         vm.prank(USER1);
         hsToken.approve(address(hsNft), NFT_PRICE);
 
@@ -144,7 +149,7 @@ contract HsTokenTest is Test {
         // 두번째 구매 (동일한 NFT 인덱스 0번 요청 시 이미 팔렸으므로 Revert)
         vm.prank(owner);
         hsToken.rewardUser(USER2, NFT_PRICE);
-        
+
         vm.prank(USER2);
         hsToken.approve(address(hsNft), NFT_PRICE);
 
@@ -168,7 +173,7 @@ contract HsTokenTest is Test {
         // 첫 구매
         vm.prank(owner);
         hsToken.rewardUser(USER1, NFT_PRICE);
-        
+
         vm.prank(USER1);
         hsToken.approve(address(hsNft), NFT_PRICE);
 
@@ -185,5 +190,49 @@ contract HsTokenTest is Test {
     function test_GetNftOwnerNotSold() public view {
         // 아직 팔리지 않은 NFT는 owner를 물어봤을 때 address(0) 반환
         assertEq(hsNft.getNftOwner(5), address(0));
+    }
+
+    function test_TokenUriMapping() public {
+        // 1. 유저에게 토큰 지급 (보상)
+        vm.startPrank(owner);
+        hsToken.rewardUser(USER1, NFT_PRICE);
+        vm.stopPrank();
+
+        // 2. 유저가 HsNft 컨트랙트가 자신의 토큰을 사용할 수 있도록 approve
+        vm.startPrank(USER1);
+        hsToken.approve(address(hsNft), NFT_PRICE);
+        vm.stopPrank();
+
+        // 3. Owner(관리자 서버)가 유저를 위해 NFT 구매 실행 (0번)
+        vm.startPrank(owner);
+        hsNft.buyNftForUser(USER1, 0, NFT_PRICE);
+        vm.stopPrank();
+
+        // 4. 생성된 URI 확인
+        string memory uri = hsNft.tokenURI(0);
+        
+        // .env에서 읽어온 BASE_URI와 tokenId(0)가 합쳐졌는지 확인
+        string memory baseUri = vm.envString("NFT_BASE_URI");
+        string memory expectedUri = string(abi.encodePacked(baseUri, "0"));
+        
+        assertEq(uri, expectedUri);
+        console.log("Token 0 URI:", uri);
+    }
+
+    function test_SetBaseURI() public {
+        string memory newUri = "ipfs://NEW_CID/";
+        
+        vm.prank(owner);
+        hsNft.setBaseURI(newUri);
+        
+        // 0번 구매 시뮬레이션
+        vm.prank(owner);
+        hsToken.rewardUser(USER1, NFT_PRICE);
+        vm.prank(USER1);
+        hsToken.approve(address(hsNft), NFT_PRICE);
+        vm.prank(owner);
+        hsNft.buyNftForUser(USER1, 0, NFT_PRICE);
+
+        assertEq(hsNft.tokenURI(0), string(abi.encodePacked(newUri, "0")));
     }
 }

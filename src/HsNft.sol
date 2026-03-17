@@ -92,9 +92,17 @@ contract HsNft is ERC721, Ownable {
      */
     function getInventoryStatus() public view returns (bool[20] memory) {
         bool[20] memory status;
-        for (uint256 i = 0; i < 20; i++) {
+        for (uint256 i = 0; i < 5; i++) {
             status[i] = s_isSold[i];
         }
         return status;
+    }
+
+    /**
+     * @notice Base URI를 변경하는 함수 (서버 이전이나 IPFS 경로 변경 시 사용)
+     * @param newBaseUri 새로운 IPFS 폴더 주소 (끝에 / 포함 권장)
+     */
+    function setBaseURI(string memory newBaseUri) public onlyOwner {
+        s_baseUri = newBaseUri;
     }
 }

@@ -9,19 +9,18 @@ import {HsNft} from "../src/HsNft.sol";
 contract DeployAll is Script {
     uint256 public constant INITIAL_SUPPLY = 100 ether;
 
-    // 임시주소 추후 ipfs에 올린 메타데이터 폴더 주소로 변경
-    string public constant BASE_URI =
-        "ipfs://bafybeig37ioir76s7mg5oobetncojcm3c3hxasyd4rvid4jqhy4gkaheg4/?filename=0-PUG.json";
-
     function run() external returns (HsToken, HsNft) {
+        string memory baseUri = vm.envString("NFT_BASE_URI");
+
         vm.startBroadcast();
         HsToken hsToken = new HsToken(INITIAL_SUPPLY);
-        HsNft hsNft = new HsNft(address(hsToken), BASE_URI);
+        HsNft hsNft = new HsNft(address(hsToken), baseUri);
         vm.stopBroadcast();
 
         console.log("-----------------------------------------");
         console.log("HsToken deployed at:", address(hsToken));
         console.log("HsNft deployed at:  ", address(hsNft));
+        console.log("Base URI set to:    ", baseUri);
         console.log("-----------------------------------------");
 
         return (hsToken, hsNft);
