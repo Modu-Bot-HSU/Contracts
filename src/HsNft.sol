@@ -92,7 +92,7 @@ contract HsNft is ERC721, Ownable {
      */
     function getInventoryStatus() public view returns (bool[20] memory) {
         bool[20] memory status;
-        for (uint256 i = 0; i < 5; i++) {
+        for (uint256 i = 0; i < 11; i++) {
             status[i] = s_isSold[i];
         }
         return status;
